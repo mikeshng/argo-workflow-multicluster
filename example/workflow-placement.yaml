@@ -2,4 +2,5 @@ apiVersion: cluster.open-cluster-management.io/v1beta1
 kind: Placement
 metadata:
   name: workflow-placement
-spec: {}
+spec:
+  numberOfClusters: 1
