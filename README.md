@@ -21,17 +21,17 @@ See the [Workflow example](example/hello-world.yaml) for the required label and 
 ## Dependencies
 - The Open Cluster Management (OCM) multi-cluster environment needs to be setup. See the [OCM website](https://open-cluster-management.io/) on how to setup the environment.
 - In this multicluster model, OCM will provide the cluster inventory and ability to deliver workload to the remote/managed clusters.
-- The remote/managed clusters need to have Argo Workflow installed.
+- The remote/managed clusters need to have Argo Workflow installed. See the [Argo Workflow OCM Addon repo](https://github.com/mikeshng/argoworkflow-addon#get-started), if you wish to have an auto Argo Workflow installation setup for all your existing and to be managed clusters. 
+Alternatively, see [Argo Workflow installation page](https://argoproj.github.io/argo-workflows/quick-start/#install-argo-workflows) to manually 
+install Argo Workflow to your remote/managed cluster.
 
 ## Getting Started
 1. Setup an OCM Hub cluster and registered at least one OCM Managed cluster.
 
-2. On the managed cluster, install Argo Workflow.
-
-3. On the managed cluster, elevate OCM agent to have permission to access the Workflow objects.
-```
-kubectl apply -f example/managed
-``` 
+2. On the hub cluster, install the [OCM Argo Workflow Addon](https://github.com/mikeshng/argoworkflow-addon#get-started).
+Alternatively, manually install the Argo Workflow to the managed cluster. If you are performing a manual installation 
+of Argo Workflow then you must elevate the OCM agent permission to access the Workflow objects by `kubectl apply -f example/managed`.
+This manual apply step is not necessary if you are using the OCM Argo Workflow Addon.
 
 3. On the hub cluster, install just the Argo Workflow CRD.
 ```
