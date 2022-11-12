@@ -24,6 +24,7 @@ See the [Workflow example](example/hello-world.yaml) for the required label and 
 - The remote/managed clusters need to have Argo Workflow installed. See the [Argo Workflow OCM Addon repo](https://github.com/mikeshng/argoworkflow-addon#get-started), if you wish to have an auto Argo Workflow installation setup for all your existing and to be managed clusters. 
 Alternatively, see [Argo Workflow installation page](https://argoproj.github.io/argo-workflows/quick-start/#install-argo-workflows) to manually 
 install Argo Workflow to your remote/managed cluster.
+- Optional: To enhance the Workflow status feedback from the managed cluster to hub cluster, install the [Argo Workflow Status OCM Addon](https://github.com/mikeshng/argoworkflow-status-addon). By default, only a limited amount of status information is sync back. With the Argo Workflow Status Addon installed, the entire status is sync back to the dormant Workflow on the hub cluster.
 
 ## Getting Started
 1. Setup an OCM Hub cluster and registered at least one OCM Managed cluster.
@@ -32,6 +33,9 @@ install Argo Workflow to your remote/managed cluster.
 Alternatively, manually install the Argo Workflow to the managed cluster. If you are performing a manual installation 
 of Argo Workflow then you must elevate the OCM agent permission to access the Workflow objects by `kubectl apply -f example/managed`.
 This manual apply step is not necessary if you are using the OCM Argo Workflow Addon.
+
+Optional: On the hub cluster, install the [OCM Argo Workflow Status Addon](https://github.com/mikeshng/argoworkflow-status-addon#install-the-argoworkflow-status-addon-to-the-hub-cluster). This will enhance the status sync from the managed cluster to 
+the hub cluster.
 
 3. On the hub cluster, install just the Argo Workflow CRD.
 ```
@@ -82,6 +86,27 @@ kubectl -n cluster1 get manifestwork -o yaml
 kubectl get workflow
 NAME                       STATUS      AGE     MESSAGE
 hello-world-multicluster   Succeeded
+```
+
+If the optional [OCM Argo Workflow Status Addon](https://github.com/mikeshng/argoworkflow-status-addon#install-the-argoworkflow-status-addon-to-the-hub-cluster) is installed, then you can see the full Workflow status.
+```
+kubectl get workflow hello-world-multicluster -o yaml 
+...
+status:
+...
+  conditions:
+  - status: "False"
+    type: PodRunning
+  - status: "True"
+    type: Completed
+  finishedAt: "2022-11-12T21:57:19Z"
+...
+  phase: Succeeded
+  progress: 1/1
+  resourcesDuration:
+    cpu: 9
+    memory: 9
+...
 ```
 
 ## What's next

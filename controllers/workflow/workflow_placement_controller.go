@@ -60,8 +60,7 @@ var WorkflowPlacementPredicateFunctions = predicate.Funcs{
 	},
 
 	DeleteFunc: func(e event.DeleteEvent) bool {
-		workflow := e.Object.(*argov1alpha1.Workflow)
-		return containsValidOCMLabel(*workflow) && containsValidOCMPlacementAnnotation(*workflow)
+		return false
 	},
 }
 

@@ -42,6 +42,8 @@ const (
 	AnnotationKeyHubWorkflowNamespace = "workflows.argoproj.io/ocm-hub-workflow-namespace"
 	// ManifestWork annotation that shows the name of the hub Workflow.
 	AnnotationKeyHubWorkflowName = "workflows.argoproj.io/ocm-hub-workflow-name"
+	// Workflow annotation that shows the first 5 characters of the dormant hub cluster Workflow
+	AnnotationKeyHubWorkflowUID = "workflows.argoproj.io/ocm-hub-workflow-uid"
 	// Workflow label that enables the controller to wrap the Workflow in ManifestWork payload.
 	LabelKeyEnableOCMMulticluster = "workflows.argoproj.io/enable-ocm-multicluster"
 	// ManifestWork label that enables the controller to sync the status of the Workflow from the managed cluster to the hub cluster.
@@ -102,6 +104,23 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// the Workflow is being deleted, find the ManifestWork and delete that as well
 	if workflow.ObjectMeta.DeletionTimestamp != nil {
+		// remove the Workflow in the managed cluster namespace that holds the full status
+		// it might not exist so if it's not found it's ok.
+		var workflowWithStatus argov1alpha1.Workflow
+		err := r.Get(ctx, types.NamespacedName{Namespace: managedClusterName,
+			Name: req.Name + "-" + string(workflow.UID)[0:5]}, &workflowWithStatus)
+		if errors.IsNotFound(err) {
+			log.Info("missing Workflow containing status")
+		} else if err != nil {
+			log.Error(err, "unable to fetch Workflow containing status")
+			return ctrl.Result{}, err
+		} else if err == nil {
+			if err := r.Delete(ctx, &workflowWithStatus); err != nil {
+				log.Error(err, "unable to delete Workflow containing status")
+				return ctrl.Result{}, err
+			}
+		}
+
 		// remove finalizer from Workflow but do not 'commit' yet
 		if len(workflow.Finalizers) != 0 {
 			f := workflow.GetFinalizers()
@@ -116,7 +135,7 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 		// delete the ManifestWork associated with this Workflow
 		var work workv1.ManifestWork
-		err := r.Get(ctx, types.NamespacedName{Name: mwName, Namespace: managedClusterName}, &work)
+		err = r.Get(ctx, types.NamespacedName{Name: mwName, Namespace: managedClusterName}, &work)
 		if errors.IsNotFound(err) {
 			// already deleted ManifestWork, commit the Workflow finalizer removal
 			if err = r.Update(ctx, &workflow); err != nil {

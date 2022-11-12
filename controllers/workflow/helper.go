@@ -129,6 +129,7 @@ func prepareWorkflowForWorkPayload(workflow argov1alpha1.Workflow) argov1alpha1.
 
 	// TODO better handling of the managed cluster Workflow labels and annotations
 	workflow.Labels[LabelKeyEnableOCMMulticluster] = "false"
+	workflow.Annotations[AnnotationKeyHubWorkflowUID] = string(workflow.UID)[0:5]
 
 	workflow.ObjectMeta = metav1.ObjectMeta{
 		Name:        workflow.Name,

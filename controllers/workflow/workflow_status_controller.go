@@ -19,6 +19,7 @@ package workflow
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,8 +54,7 @@ var ManifestWorkPredicateFunctions = predicate.Funcs{
 	},
 
 	DeleteFunc: func(e event.DeleteEvent) bool {
-		manifestWork := e.Object.(*workv1.ManifestWork)
-		return containsValidOCMStatusSyncLabel(*manifestWork) && containsValidOCMHubWorkflowAnnotation(*manifestWork)
+		return false
 	},
 }
 
@@ -93,11 +93,10 @@ func (r *WorkflowStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 	}
 
 	if len(phase) == 0 {
-		log.Info("phase is not ManifestWork status feedback yet")
+		log.Info("phase is not in ManifestWork status feedback yet")
 		return ctrl.Result{}, nil
 	}
 
-	log.Info("updating Workflow status with ManifestWork status feedback")
 	workflowNamespace := manifestWork.Annotations[AnnotationKeyHubWorkflowNamespace]
 	workflowName := manifestWork.Annotations[AnnotationKeyHubWorkflowName]
 
@@ -107,8 +106,30 @@ func (r *WorkflowStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	workflow.Status.Phase = argov1alpha1.WorkflowPhase(phase)
-	err := r.Client.Update(ctx, &workflow)
+	shouldSyncFullStatus := true
+
+	workflowWithStatus := argov1alpha1.Workflow{}
+	err := r.Get(ctx, types.NamespacedName{Namespace: req.Namespace,
+		Name: workflowName + "-" + string(workflow.UID)[0:5]}, &workflowWithStatus)
+	switch {
+	case errors.IsNotFound(err):
+		log.Info("missing Workflow containing status")
+		shouldSyncFullStatus = false
+	case err != nil:
+		log.Error(err, "unable to fetch Workflow containing status")
+		return ctrl.Result{}, err
+	}
+
+	if shouldSyncFullStatus {
+		workflow.Status = workflowWithStatus.Status
+		log.Info("updating Workflow status with full status")
+
+	} else {
+		workflow.Status.Phase = argov1alpha1.WorkflowPhase(phase)
+		log.Info("updating Workflow status with ManifestWork status feedback")
+	}
+
+	err = r.Client.Update(ctx, &workflow)
 	if err != nil {
 		log.Error(err, "unable to update Workflow")
 		return ctrl.Result{}, err
