@@ -23,6 +23,7 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/selection"
+	"k8s.io/apimachinery/pkg/util/wait"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -36,6 +37,8 @@ import (
 const (
 	// Workflow annotation that dictates which OCM Placement this Workflow should use to determine the managed cluster.
 	AnnotationKeyOCMPlacement = "workflows.argoproj.io/ocm-placement"
+	// Workflow annotation that disables the force re-evaluation of OCM Placement.
+	AnnotationKeyOCMDisableForcePlacementReeval = "workflows.argoproj.io/ocm-placement-disable-force-reeval"
 )
 
 // WorkflowPlacementReconciler reconciles a Workflow object
@@ -113,6 +116,36 @@ func (r *WorkflowPlacementReconciler) Reconcile(ctx context.Context, req ctrl.Re
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 
+	if !shouldDisableForcePlacementReeval(workflow) {
+		// The AddOnPlacementScore changes doesn't update the PlacementDecision automatically.
+		// There is currently a 5 minutes interval for PlacementDecision evaluation.
+		// Force the Placement evaluation by deleting all the existing PlacementDecisions.
+		// Wait for the PlacementDecision to be recreated (re-evaluated) then use the new PlacementDecision results.
+		for _, pd := range placementDecisions.Items {
+			if err := r.Delete(ctx, &pd); err != nil {
+				log.Error(err, "unable to delete PlacementDecision")
+				return ctrl.Result{}, err
+			}
+		}
+
+		if err := wait.PollImmediate(time.Second, time.Second*10,
+			r.existPlacementDecision(ctx, listopts)); err != nil {
+			log.Error(err, "unable to check if PlacementDecision exist")
+			return ctrl.Result{}, err
+		}
+
+		err = r.List(ctx, placementDecisions, listopts)
+		if err != nil {
+			log.Error(err, "unable to list PlacementDecisions")
+			return ctrl.Result{}, err
+		}
+
+		if len(placementDecisions.Items) == 0 {
+			log.Info("unable to find any PlacementDecision, try again after 10 seconds")
+			return ctrl.Result{RequeueAfter: time.Second * 10}, nil
+		}
+	}
+
 	// TODO only handle one PlacementDecision target for now
 	pd := placementDecisions.Items[0]
 	if len(pd.Status.Decisions) == 0 {
@@ -141,4 +174,21 @@ func (r *WorkflowPlacementReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	log.Info("done reconciling Workflow for Placement evaluation")
 
 	return ctrl.Result{}, nil
+}
+
+func (r *WorkflowPlacementReconciler) existPlacementDecision(ctx context.Context,
+	listopts client.ListOption) wait.ConditionFunc {
+	return func() (bool, error) {
+		placementDecisions := &clusterv1beta1.PlacementDecisionList{}
+		err := r.List(ctx, placementDecisions, listopts)
+		if err != nil {
+			return false, err
+		}
+
+		if len(placementDecisions.Items) == 0 {
+			return false, nil
+		}
+
+		return true, nil
+	}
 }

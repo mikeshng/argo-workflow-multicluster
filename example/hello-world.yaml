@@ -7,6 +7,7 @@ metadata:
     workflows.argoproj.io/enable-ocm-multicluster: "true" # enable OCM multicluster
   annotations:
     workflows.argoproj.io/ocm-placement: "workflow-placement" # evaluate the OCM Placement
+    # workflows.argoproj.io/ocm-placement-disable-force-reeval: "true" # if true, disable the force placement decision re-evaluation
     workflows.argoproj.io/description: |
       This is a simple hello world example.
       You can also run it in Python: https://couler-proj.github.io/couler/examples/#hello-world
