@@ -92,23 +92,6 @@ func containsValidOCMHubWorkflowAnnotation(manifestWork workv1.ManifestWork) boo
 	return ok && ok2 && len(namespace) > 0 && len(name) > 0
 }
 
-func shouldDisableForcePlacementReeval(workflow argov1alpha1.Workflow) bool {
-	annos := workflow.GetAnnotations()
-	if len(annos) == 0 {
-		return false
-	}
-
-	if disableStr, ok := annos[AnnotationKeyOCMDisableForcePlacementReeval]; ok {
-		isDisable, err := strconv.ParseBool(disableStr)
-		if err != nil {
-			return false
-		}
-		return isDisable
-	}
-
-	return false
-}
-
 // generateWorkflowNamespace returns the intended namespace for the Workflow in the following priority
 // 1) Annotation specified custom namespace
 // 2) Workflow's namespace value
