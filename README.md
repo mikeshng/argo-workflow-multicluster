@@ -1,43 +1,43 @@
 # Argo Workflow Multicluster
-Experimental controllers that uses the [Open Cluster Management (OCM)](https://open-cluster-management.io/) 
-APIs and components to enable Argo Workflow Multi-cluster capabilities.
-
-**Note:** This is an experimental project and we welcome any community's feedback and suggestions.
+Enable [Argo Workflow](https://argoproj.github.io/argo-workflows/) Multi-cluster capabilities by using
+the [Open Cluster Management (OCM)](https://open-cluster-management.io/) APIs and components.
 
 ## Description
 By using this project, users can propgate Argo Workflow to remote clusters based on availabile cluster resource usages.
 
 ![multi-cluster](assets/multicluster.png)
 
-There are three controllers in this project.
+There are multiple components in this project.
 
-- Workflow Placement controller watches the Workflow CR and evaluate the [Placement](https://open-cluster-management.io/concepts/placement/) decision then annotates the Workflow with the remote cluster target.
-- Workflow ManifestWork controller watches the Workflow CR with the remote cluster target and create [ManifestWork](https://open-cluster-management.io/concepts/manifestwork/) CR which will propgate the Workflow to the intended remote cluster.
-- Workflow Status controller that updates the Workflow CR status on the hub cluster with the remote cluster's Workflow's execution results.
+- Placement controller watches the Workflow CR and evaluate the [Placement](https://open-cluster-management.io/concepts/placement/) decision then annotates the Workflow with the remote cluster target.
+- ManifestWork controller watches the Workflow CR with the remote cluster target and create [ManifestWork](https://open-cluster-management.io/concepts/manifestwork/) CR which will propgate the Workflow to the intended remote cluster.
+- Status controller that updates the Workflow CR status on the hub cluster with the remote cluster's Workflow's execution results.
+- Install Add-on that automates the installation of Argo Workflow to all the managed clusters.
+See the [Install Add-on README](addons/hub/install/README.md) for more details.
 
 See the [Workflow example](example/hello-world.yaml) for the required label and annotation.
-
 
 ## Dependencies
 - The Open Cluster Management (OCM) multi-cluster environment needs to be setup. See the [OCM website](https://open-cluster-management.io/) on how to setup the environment.
 - In this multicluster model, OCM will provide the cluster inventory and ability to deliver workload to the remote/managed clusters.
-- The remote/managed clusters need to have Argo Workflow installed. See the [Argo Workflow OCM Addon repo](https://github.com/mikeshng/argoworkflow-addon#get-started), if you wish to have an auto Argo Workflow installation setup for all your existing and to be managed clusters. 
-Alternatively, see [Argo Workflow installation page](https://argoproj.github.io/argo-workflows/quick-start/#install-argo-workflows) to manually 
-install Argo Workflow to your remote/managed cluster.
 - Optional: To enhance the Workflow status feedback from the managed cluster to hub cluster, install the [Argo Workflow Status OCM Addon](https://github.com/mikeshng/argoworkflow-status-addon). By default, only a limited amount of status information is sync back. With the Argo Workflow Status Addon installed, the entire status is sync back to the dormant Workflow on the hub cluster.
 
 ## Getting Started
 1. Setup an OCM Hub cluster and registered at least one OCM Managed cluster.
 
-2. On the hub cluster, install the [OCM Argo Workflow Addon](https://github.com/mikeshng/argoworkflow-addon#get-started).
-Alternatively, manually install the Argo Workflow to the managed cluster. If you are performing a manual installation 
-of Argo Workflow then you must elevate the OCM agent permission to access the Workflow objects by `kubectl apply -f example/managed`.
-This manual apply step is not necessary if you are using the OCM Argo Workflow Addon.
+2. On the hub cluster, install the OCM Argo Workflow Install Addon by running:
+```
+kubectl apply -f deploy/addon/hub/install/
+```
+This will automate the installation of Argo Workflow to the managed clusters.
+For manual installation of Argo Workflow, elevate the OCM agent permission to access 
+the Workflow objects by `kubectl apply -f example/managed`.
+This manual privilege escalation is not necessary when using the OCM Argo Workflow Addon.
 
 Optional: On the hub cluster, install the [OCM Argo Workflow Status Addon](https://github.com/mikeshng/argoworkflow-status-addon#install-the-argoworkflow-status-addon-to-the-hub-cluster). This will enhance the status sync from the managed cluster to 
 the hub cluster.
 
-3. On the hub cluster, install just the Argo Workflow CRD.
+3. On the hub cluster, install just the Argo Workflow CRD. Using the CRD from this repo:
 ```
 kubectl apply -f hack/crds/workflows_crd.yaml
 ```
