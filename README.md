@@ -27,7 +27,7 @@ See the [Workflow example](example/hello-world.yaml) for the required label and 
 
 2. On the hub cluster, install the OCM Argo Workflow Install Addon by running:
 ```
-kubectl apply -f deploy/addon/hub/install/
+kubectl apply -f deploy/addon/install/
 ```
 This will automate the installation of Argo Workflow to the managed clusters.
 For manual installation of Argo Workflow, elevate the OCM agent permission to access 

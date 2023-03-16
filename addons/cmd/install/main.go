@@ -36,8 +36,8 @@ func main() {
 
 func newCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "argoworkflow-install-addon",
-		Short: "ArgoWorkflow Install Add-on",
+		Use:   "install-addon",
+		Short: "install-addon",
 		Run: func(cmd *cobra.Command, args []string) {
 			if err := cmd.Help(); err != nil {
 				fmt.Fprintf(os.Stderr, "%v\n", err)
@@ -59,7 +59,7 @@ func newCommand() *cobra.Command {
 
 func newControllerCommand() *cobra.Command {
 	cmd := controllercmd.
-		NewControllerCommandConfig("argoworkflow-install-addon", version.Get(), runControllers).
+		NewControllerCommandConfig("install-addon", version.Get(), runControllers).
 		NewCommand()
 	cmd.Use = "controller"
 	cmd.Short = "Start the ArgoWorkflow install add-on controller"
