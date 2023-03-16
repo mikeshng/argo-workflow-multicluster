@@ -40,9 +40,10 @@ func init() {
 var fs embed.FS
 
 var manifestFiles = []string{
-	"manifests/00-ocm-clusterrole.yaml",        // OCM specific
-	"manifests/01-ocm-clusterrolebinding.yaml", // OCM specific
-	"manifests/02-argo-namespace.yaml",
+	"manifests/00-ocm-clusterrole.yaml",                // OCM specific
+	"manifests/01-ocm-clusterrolebinding.yaml",         // OCM specific
+	"manifests/02-argo-namespace.yaml",                 // Argo Workflow namespace
+	"manifests/03-argo-workflowstatusresults_crd.yaml", // Argo Workflow status CRD
 	"manifests/argo-aggregate-to-admin-cr.yaml",
 	"manifests/argo-aggregate-to-edit-cr.yaml",
 	"manifests/argo-aggregate-to-view-cr.yaml",

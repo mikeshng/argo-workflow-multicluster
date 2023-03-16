@@ -31,6 +31,7 @@ import (
 	argov1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	workv1 "open-cluster-management.io/api/work/v1"
+	workflowv1alpha1 "open-cluster-management.io/argo-workflow-multicluster/api/v1alpha1"
 )
 
 const (
@@ -59,6 +60,7 @@ type WorkflowReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=workflows,verbs=get;list;watch;update;patch
+//+kubebuilder:rbac:groups=argoproj.io,resources=workflowstatusresults,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=cluster.open-cluster-management.io,resources=managedclusters,verbs=get;list;watch
 //+kubebuilder:rbac:groups=work.open-cluster-management.io,resources=manifestworks,verbs=get;list;watch;create;update;patch;delete
 
@@ -104,19 +106,19 @@ func (r *WorkflowReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 
 	// the Workflow is being deleted, find the ManifestWork and delete that as well
 	if workflow.ObjectMeta.DeletionTimestamp != nil {
-		// remove the Workflow in the managed cluster namespace that holds the full status
+		// remove the WorkflowStatusResult in the managed cluster namespace that holds the full status
 		// it might not exist so if it's not found it's ok.
-		var workflowWithStatus argov1alpha1.Workflow
+		var workflowWithStatus workflowv1alpha1.WorkflowStatusResult
 		err := r.Get(ctx, types.NamespacedName{Namespace: managedClusterName,
 			Name: req.Name + "-" + string(workflow.UID)[0:5]}, &workflowWithStatus)
 		if errors.IsNotFound(err) {
 			log.Info("missing Workflow containing status")
 		} else if err != nil {
-			log.Error(err, "unable to fetch Workflow containing status")
+			log.Error(err, "unable to fetch WorkflowStatusResult")
 			return ctrl.Result{}, err
 		} else if err == nil {
 			if err := r.Delete(ctx, &workflowWithStatus); err != nil {
-				log.Error(err, "unable to delete Workflow containing status")
+				log.Error(err, "unable to delete WorkflowStatusResult")
 				return ctrl.Result{}, err
 			}
 		}

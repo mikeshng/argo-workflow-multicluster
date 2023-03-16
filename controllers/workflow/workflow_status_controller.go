@@ -19,17 +19,14 @@ package workflow
 import (
 	"context"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	argov1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
-	workv1 "open-cluster-management.io/api/work/v1"
+	workflowv1alpha1 "open-cluster-management.io/argo-workflow-multicluster/api/v1alpha1"
 )
 
 // WorkflowStatusReconciler reconciles a Workflow object
@@ -39,66 +36,33 @@ type WorkflowStatusReconciler struct {
 }
 
 //+kubebuilder:rbac:groups=argoproj.io,resources=workflows,verbs=get;list;watch;update;patch
-//+kubebuilder:rbac:groups=work.open-cluster-management.io,resources=manifestworks,verbs=get;list;watch
-
-// ManifestWorkPredicateFunctions defines which ManifestWork this controller should watch
-var ManifestWorkPredicateFunctions = predicate.Funcs{
-	UpdateFunc: func(e event.UpdateEvent) bool {
-		newManifestWork := e.ObjectNew.(*workv1.ManifestWork)
-		return containsValidOCMStatusSyncLabel(*newManifestWork) && containsValidOCMHubWorkflowAnnotation(*newManifestWork)
-
-	},
-	CreateFunc: func(e event.CreateEvent) bool {
-		manifestWork := e.Object.(*workv1.ManifestWork)
-		return containsValidOCMStatusSyncLabel(*manifestWork) && containsValidOCMHubWorkflowAnnotation(*manifestWork)
-	},
-
-	DeleteFunc: func(e event.DeleteEvent) bool {
-		return false
-	},
-}
+//+kubebuilder:rbac:groups=argoproj.io,resources=workflowstatusresults,verbs=get;list;watch
 
 // SetupWithManager sets up the controller with the Manager.
 func (re *WorkflowStatusReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&workv1.ManifestWork{}).
-		WithEventFilter(ManifestWorkPredicateFunctions).
+		For(&workflowv1alpha1.WorkflowStatusResult{}).
 		Complete(re)
 }
 
 // Reconcile populates the Workflow status based on the associated ManifestWork's status feedback
 func (r *WorkflowStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
-	log.Info("reconciling Workflow for status update..")
-	defer log.Info("done reconciling Workflow for status update")
+	log.Info("reconciling WorkflowStatusResult for status update..")
+	defer log.Info("done reconciling WorkflowStatusResult for status update")
 
-	var manifestWork workv1.ManifestWork
-	if err := r.Get(ctx, req.NamespacedName, &manifestWork); err != nil {
-		log.Error(err, "unable to fetch ManifestWork")
+	var workflowStatusResult workflowv1alpha1.WorkflowStatusResult
+	if err := r.Get(ctx, req.NamespacedName, &workflowStatusResult); err != nil {
+		log.Error(err, "unable to fetch WorkflowStatusResult")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if manifestWork.ObjectMeta.DeletionTimestamp != nil {
+	if workflowStatusResult.ObjectMeta.DeletionTimestamp != nil {
 		return ctrl.Result{}, nil
 	}
 
-	resourceManifests := manifestWork.Status.ResourceStatus.Manifests
-
-	phase := ""
-	if len(resourceManifests) > 0 {
-		statusFeedbacks := resourceManifests[0].StatusFeedbacks.Values
-		if len(statusFeedbacks) > 0 && statusFeedbacks[0].Value.String != nil {
-			phase = *statusFeedbacks[0].Value.String
-		}
-	}
-
-	if len(phase) == 0 {
-		log.Info("phase is not in ManifestWork status feedback yet")
-		return ctrl.Result{}, nil
-	}
-
-	workflowNamespace := manifestWork.Annotations[AnnotationKeyHubWorkflowNamespace]
-	workflowName := manifestWork.Annotations[AnnotationKeyHubWorkflowName]
+	workflowName := workflowStatusResult.Annotations[AnnotationKeyHubWorkflowName]
+	workflowNamespace := workflowStatusResult.Annotations[AnnotationKeyHubWorkflowNamespace]
 
 	workflow := argov1alpha1.Workflow{}
 	if err := r.Get(ctx, types.NamespacedName{Namespace: workflowNamespace, Name: workflowName}, &workflow); err != nil {
@@ -106,30 +70,9 @@ func (r *WorkflowStatusReconciler) Reconcile(ctx context.Context, req ctrl.Reque
 		return ctrl.Result{}, err
 	}
 
-	shouldSyncFullStatus := true
+	workflow.Status = workflowStatusResult.WorkflowStatus
 
-	workflowWithStatus := argov1alpha1.Workflow{}
-	err := r.Get(ctx, types.NamespacedName{Namespace: req.Namespace,
-		Name: workflowName + "-" + string(workflow.UID)[0:5]}, &workflowWithStatus)
-	switch {
-	case errors.IsNotFound(err):
-		log.Info("missing Workflow containing status")
-		shouldSyncFullStatus = false
-	case err != nil:
-		log.Error(err, "unable to fetch Workflow containing status")
-		return ctrl.Result{}, err
-	}
-
-	if shouldSyncFullStatus {
-		workflow.Status = workflowWithStatus.Status
-		log.Info("updating Workflow status with full status")
-
-	} else {
-		workflow.Status.Phase = argov1alpha1.WorkflowPhase(phase)
-		log.Info("updating Workflow status with ManifestWork status feedback")
-	}
-
-	err = r.Client.Update(ctx, &workflow)
+	err := r.Client.Update(ctx, &workflow)
 	if err != nil {
 		log.Error(err, "unable to update Workflow")
 		return ctrl.Result{}, err

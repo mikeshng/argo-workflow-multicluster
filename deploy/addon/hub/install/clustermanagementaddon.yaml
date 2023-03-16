@@ -1,8 +1,0 @@
-apiVersion: addon.open-cluster-management.io/v1alpha1
-kind: ClusterManagementAddOn
-metadata:
-  name: argoworkflow-install-addon
-spec:
-  addOnMeta:
-    displayName: ArgoWorkflowInstallAddon
-    description: Argo Workflow Install Addon is an OCM add-on that automates the Argo Workflow installation on the managed clusters.

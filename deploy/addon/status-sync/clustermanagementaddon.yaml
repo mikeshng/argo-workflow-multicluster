@@ -1,0 +1,8 @@
+apiVersion: addon.open-cluster-management.io/v1alpha1
+kind: ClusterManagementAddOn
+metadata:
+  name: argoworkflow-status-sync-addon
+spec:
+  addOnMeta:
+    displayName: ArgoWorkflowStatusSyncAddon
+    description: Argo Workflow Status Sync Addon is an OCM add-on that copies the Argo Workflow status from the spoke clusters to the hub cluster.

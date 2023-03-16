@@ -27,7 +27,7 @@ The controller will automatically install the add-on to all `managed` (`spoke`) 
 Validate the add-on is installed on a `managed` (`spoke`) cluster:
 
 ```
-kubectl -n argo get deploy
+$  argo get deploy
 NAME                  READY   UP-TO-DATE   AVAILABLE   AGE
 argo-server           1/1     1            1           24s
 workflow-controller   1/1     1            1           24s

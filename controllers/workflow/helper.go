@@ -160,19 +160,20 @@ func generateManifestWork(name, namespace string, workflow argov1alpha1.Workflow
 			Workload: workv1.ManifestsTemplate{
 				Manifests: []workv1.Manifest{{RawExtension: runtime.RawExtension{Object: &workflow}}},
 			},
-			ManifestConfigs: []workv1.ManifestConfigOption{
-				{
-					ResourceIdentifier: workv1.ResourceIdentifier{
-						Group:     argov1alpha1.SchemeGroupVersion.Group,
-						Resource:  "workflows", // TODO find the constant value from the argo API for this field
-						Namespace: workflow.Namespace,
-						Name:      workflow.Name,
-					},
-					FeedbackRules: []workv1.FeedbackRule{
-						{Type: workv1.JSONPathsType, JsonPaths: []workv1.JsonPath{{Name: "phase", Path: ".status.phase"}}},
-					},
-				},
-			},
+			// TODO always assume the status sync addon is installed
+			// ManifestConfigs: []workv1.ManifestConfigOption{
+			// 	{
+			// 		ResourceIdentifier: workv1.ResourceIdentifier{
+			// 			Group:     argov1alpha1.SchemeGroupVersion.Group,
+			// 			Resource:  "workflows", // TODO find the constant value from the argo API for this field
+			// 			Namespace: workflow.Namespace,
+			// 			Name:      workflow.Name,
+			// 		},
+			// 		FeedbackRules: []workv1.FeedbackRule{
+			// 			{Type: workv1.JSONPathsType, JsonPaths: []workv1.JsonPath{{Name: "phase", Path: ".status.phase"}}},
+			// 		},
+			// 	},
+			// },
 		},
 	}
 }

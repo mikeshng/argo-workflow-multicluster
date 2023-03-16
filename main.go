@@ -35,6 +35,7 @@ import (
 	clusterv1 "open-cluster-management.io/api/cluster/v1"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 	workv1 "open-cluster-management.io/api/work/v1"
+	workflowv1alpha1 "open-cluster-management.io/argo-workflow-multicluster/api/v1alpha1"
 	workflow "open-cluster-management.io/argo-workflow-multicluster/controllers/workflow"
 )
 
@@ -49,6 +50,7 @@ func init() {
 	utilruntime.Must(clusterv1.AddToScheme(scheme))
 	utilruntime.Must(clusterv1beta1.AddToScheme(scheme))
 	utilruntime.Must(workv1.AddToScheme(scheme))
+	utilruntime.Must(workflowv1alpha1.AddToScheme(scheme))
 }
 
 func main() {
