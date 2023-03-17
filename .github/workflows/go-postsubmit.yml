@@ -1,0 +1,39 @@
+name: GoPostSubmit
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: {}
+
+env:
+  # Common versions
+  GO_VERSION: '1.19'
+  GO_REQUIRED_MIN_VERSION: ''
+  GOPATH: '/home/runner/work/open-cluster-management-io/argo-workflow-multicluster/go'
+defaults:
+  run:
+    working-directory: go/src/github.com/open-cluster-management-io/argo-workflow-multicluster
+
+jobs:
+  images:
+    name: images
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+          path: go/src/github.com/open-cluster-management-io/argo-workflow-multicluster
+      - name: install Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: install imagebuilder
+        run: go install github.com/openshift/imagebuilder/cmd/imagebuilder@v1.2.3
+      - name: images
+        run: make docker-build
+      - name: push
+        run: |
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login quay.io --username ${{ secrets.DOCKER_USER }} --password-stdin
+          docker push quay.io/open-cluster-management/argo-workflow-multicluster:latest
