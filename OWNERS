@@ -1,16 +1,10 @@
-approvers:
-- jnpacker
+owners:
+- juliev0
 - mikeshng
-- rokej
-- philipwu08
-- xiangjingli
-- lennysgarage
-- chenz4027
+- sarabala1979
+
 reviewers:
-- jnpacker
-- mikeshng
-- rokej
-- philipwu08
-- xiangjingli
-- lennysgarage
-- chenz4027
+- dpadhiar
+
+approvers:
+- dpadhiar
