@@ -63,35 +63,6 @@ func containsValidOCMPlacementAnnotation(workflow argov1alpha1.Workflow) bool {
 	return ok && len(placementName) > 0
 }
 
-func containsValidOCMStatusSyncLabel(manifestWork workv1.ManifestWork) bool {
-	labels := manifestWork.GetLabels()
-	if len(labels) == 0 {
-		return false
-	}
-
-	if ocmLabelStr, ok := labels[LabelKeyEnableOCMStatusSync]; ok {
-		isEnable, err := strconv.ParseBool(ocmLabelStr)
-		if err != nil {
-			return false
-		}
-		return isEnable
-	}
-
-	return false
-}
-
-func containsValidOCMHubWorkflowAnnotation(manifestWork workv1.ManifestWork) bool {
-	annos := manifestWork.GetAnnotations()
-	if len(annos) == 0 {
-		return false
-	}
-
-	namespace, ok := annos[AnnotationKeyHubWorkflowNamespace]
-	name, ok2 := annos[AnnotationKeyHubWorkflowName]
-
-	return ok && ok2 && len(namespace) > 0 && len(name) > 0
-}
-
 // generateWorkflowNamespace returns the intended namespace for the Workflow in the following priority
 // 1) Annotation specified custom namespace
 // 2) Workflow's namespace value
