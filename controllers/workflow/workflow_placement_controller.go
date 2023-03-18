@@ -30,6 +30,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
 	argov1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/go-logr/logr"
 	clusterv1beta1 "open-cluster-management.io/api/cluster/v1beta1"
 )
 
@@ -104,26 +105,26 @@ func (r *WorkflowPlacementReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	err = r.List(ctx, placementDecisions, listopts)
 	if err != nil {
-		log.Error(err, "unable to list PlacementDecisions")
+		r.updateWorkflowStatusWithPlacementError(ctx, log, workflow, "unable to list PlacementDecisions\n"+err.Error())
 		return ctrl.Result{}, err
 	}
 
 	if len(placementDecisions.Items) == 0 {
-		log.Info("unable to find any PlacementDecision, try again after 10 seconds")
+		r.updateWorkflowStatusWithPlacementError(ctx, log, workflow, "unable to find any PlacementDecision, retrying after 10 seconds...")
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 
 	// TODO only handle one PlacementDecision target for now
 	pd := placementDecisions.Items[0]
 	if len(pd.Status.Decisions) == 0 {
-		log.Info("unable to find any Decisions from PlacementDecision, try again after 10 seconds")
+		r.updateWorkflowStatusWithPlacementError(ctx, log, workflow, "unable to find any Decisions from PlacementDecision, retrying after 10 seconds...")
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 
 	// TODO only using the first decision
 	managedClusterName := pd.Status.Decisions[0].ClusterName
 	if len(managedClusterName) == 0 {
-		log.Info("unable to find a valid ManagedCluster from PlacementDecision, try again after 10 seconds")
+		r.updateWorkflowStatusWithPlacementError(ctx, log, workflow, "unable to find a valid ManagedCluster from PlacementDecision, retrying after 10 seconds...")
 		return ctrl.Result{RequeueAfter: time.Second * 10}, nil
 	}
 
@@ -131,6 +132,10 @@ func (r *WorkflowPlacementReconciler) Reconcile(ctx context.Context, req ctrl.Re
 
 	workflow.Annotations[AnnotationKeyOCMPlacement] = ""
 	workflow.Annotations[AnnotationKeyOCMManagedCluster] = managedClusterName
+	workflow.Status = argov1alpha1.WorkflowStatus{
+		Phase:   argov1alpha1.WorkflowPending,
+		Message: "successfully evaluated Placement, pending Workflow propagation and execution",
+	}
 
 	err = r.Client.Update(ctx, &workflow)
 	if err != nil {
@@ -141,4 +146,18 @@ func (r *WorkflowPlacementReconciler) Reconcile(ctx context.Context, req ctrl.Re
 	log.Info("done reconciling Workflow for Placement evaluation")
 
 	return ctrl.Result{}, nil
+}
+
+func (r *WorkflowPlacementReconciler) updateWorkflowStatusWithPlacementError(ctx context.Context, log logr.Logger,
+	workflow argov1alpha1.Workflow, placementErr string) {
+	log.Info(placementErr)
+
+	workflow.Status = argov1alpha1.WorkflowStatus{
+		Phase:   argov1alpha1.WorkflowError,
+		Message: "unable to evaluate Placement and PlacementDecision\n" + placementErr,
+	}
+
+	if err := r.Client.Update(ctx, &workflow); err != nil {
+		log.Error(err, "unable to update Workflow status")
+	}
 }
