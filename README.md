@@ -47,12 +47,9 @@ kubectl apply -f deploy/addon/status-sync/
 This will install the status sync agent to all the managed clusters. See the [Status Sync Add-on README](addons/hub/status_sync/README.md) for more details.
 
 
-5. On the hub cluster, clone this project and run the controllers:
+5. On the hub cluster, deploy the Argo Workflow Multicluster manager:
 ```
-export KUBECONFIG=/path/to/<hub-kubeconfig>
-git clone ...
-cd argo-workflow-multicluster
-make run
+kubectl apply -f deploy/argo-workflow-multicluster/
 ```
 
 6. On the hub cluster, apply the ManagedClusterSetBinding and Placement.

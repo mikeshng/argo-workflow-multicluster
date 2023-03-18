@@ -1,0 +1,3 @@
+resources:
+  - workflows_crd.yaml
+  - workflowstatusresults_crd.yaml
