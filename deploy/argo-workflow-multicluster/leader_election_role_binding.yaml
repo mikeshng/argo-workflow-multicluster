@@ -1,0 +1,13 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: argo-workflow-multicluster-leader-election-rolebinding
+  namespace: open-cluster-management
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: argo-workflow-multicluster-leader-election-role
+subjects:
+- kind: ServiceAccount
+  name: argo-workflow-multicluster
+  namespace: open-cluster-management

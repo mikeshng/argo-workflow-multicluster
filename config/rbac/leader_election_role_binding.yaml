@@ -1,19 +1,13 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  labels:
-    app.kubernetes.io/name: rolebinding
-    app.kubernetes.io/instance: leader-election-rolebinding
-    app.kubernetes.io/component: rbac
-    app.kubernetes.io/created-by: argo-workflow-multicluster
-    app.kubernetes.io/part-of: argo-workflow-multicluster
-    app.kubernetes.io/managed-by: kustomize
-  name: leader-election-rolebinding
+  name: argo-workflow-multicluster-leader-election-rolebinding
+  namespace: open-cluster-management
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: leader-election-role
+  name: argo-workflow-multicluster-leader-election-role
 subjects:
 - kind: ServiceAccount
-  name: controller-manager
-  namespace: system
+  name: argo-workflow-multicluster
+  namespace: open-cluster-management
