@@ -17,10 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
-const (
-	AnnotationKeyHubWorkflowUID = "workflows.argoproj.io/ocm-hub-workflow-uid"
-)
-
 type ArgoWorkflowStatusController struct {
 	spokeClient client.Client
 	hubClient   client.Client
@@ -34,11 +30,11 @@ var WorkflowPredicateFunctions = predicate.Funcs{
 		newWf := e.ObjectNew.(*argov1alpha1.Workflow)
 		oldWf := e.ObjectOld.(*argov1alpha1.Workflow)
 
-		return containsValidOCMAnnotation(*newWf) && !reflect.DeepEqual(newWf.Status, oldWf.Status)
+		return containsValidOCMAnnotations(*newWf) && !reflect.DeepEqual(newWf.Status, oldWf.Status)
 	},
 	CreateFunc: func(e event.CreateEvent) bool {
 		workflow := e.Object.(*argov1alpha1.Workflow)
-		return containsValidOCMAnnotation(*workflow)
+		return containsValidOCMAnnotations(*workflow)
 	},
 	// do not reconcile on delete
 	DeleteFunc: func(e event.DeleteEvent) bool {
@@ -53,9 +49,9 @@ func (c *ArgoWorkflowStatusController) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(c)
 }
 
-// Reconcile Workflow status changes and create/update a Workflow CR in the hub cluster's managed cluster namespace
-// This agent only has permission to create/update in that particular namespace so the hub cluster
-// will need another controller that sync the Workflow status from hub's managed cluster namespace to the original dormant Workflow.
+// Reconcile Workflow status changes and create/update a WorkflowStatusResult CR in the hub cluster's managed cluster namespace.
+// This agent only has permission to create/update WorkflowStatusResult in that particular namespace.
+// The hub cluster workflow status controller will sync the WorkflowStatusResult from hub's managed cluster namespace to the original dormant Workflow's status.
 func (c *ArgoWorkflowStatusController) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	c.log.Info(fmt.Sprintf("reconciling... %s", req))
 	defer c.log.Info(fmt.Sprintf("done reconcile %s", req))
@@ -76,11 +72,11 @@ func (c *ArgoWorkflowStatusController) Reconcile(ctx context.Context, req ctrl.R
 
 	hubWorkflowStatusResult := workflowv1alpha1.WorkflowStatusResult{}
 	hubWorkflowStatusResult.Namespace = c.clusterName
-	hubWorkflowStatusResult.Name = generateHubWorkflowStatusSyncName(workflow)
+	hubWorkflowStatusResult.Name = generateHubWorkflowStatusResultName(workflow)
 	hubWorkflowStatusResult.WorkflowStatus = workflow.Status
 	hubWorkflowStatusResult.Annotations = map[string]string{
-		workflowcontroller.AnnotationKeyHubWorkflowName:      workflow.Name,
-		workflowcontroller.AnnotationKeyHubWorkflowNamespace: workflow.Namespace,
+		workflowcontroller.AnnotationKeyHubWorkflowName:      workflow.Annotations[workflowcontroller.AnnotationKeyHubWorkflowName],
+		workflowcontroller.AnnotationKeyHubWorkflowNamespace: workflow.Annotations[workflowcontroller.AnnotationKeyHubWorkflowNamespace],
 	}
 	err = c.hubClient.Get(ctx, types.NamespacedName{Namespace: hubWorkflowStatusResult.Namespace, Name: hubWorkflowStatusResult.Name}, &hubWorkflowStatusResult)
 	switch {

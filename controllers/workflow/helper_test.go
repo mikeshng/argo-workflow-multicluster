@@ -328,10 +328,9 @@ func Test_prepareWorkflowForWorkPayload(t *testing.T) {
 			args: args{
 				argov1alpha1.Workflow{
 					ObjectMeta: v1.ObjectMeta{
-						Name:        "workflow1",
-						UID:         "abcdefghijk",
-						Labels:      map[string]string{LabelKeyEnableOCMMulticluster: "true"},
-						Annotations: map[string]string{AnnotationKeyHubWorkflowUID: "workflow1"},
+						Name:      "workflow1",
+						Namespace: "argo",
+						Labels:    map[string]string{LabelKeyEnableOCMMulticluster: "true"},
 					},
 				},
 			},
@@ -340,7 +339,7 @@ func Test_prepareWorkflowForWorkPayload(t *testing.T) {
 					Name:        "workflow1",
 					Namespace:   "argo",
 					Labels:      map[string]string{LabelKeyEnableOCMMulticluster: "false"},
-					Annotations: map[string]string{AnnotationKeyHubWorkflowUID: "abcde"},
+					Annotations: map[string]string{AnnotationKeyHubWorkflowNamespace: "argo", AnnotationKeyHubWorkflowName: "workflow1"},
 				},
 			},
 		},
@@ -377,14 +376,10 @@ func Test_generateManifestWork(t *testing.T) {
 		namespace string
 		workflow  argov1alpha1.Workflow
 	}
-	type results struct {
-		workLabel map[string]string
-		workAnno  map[string]string
-	}
 	tests := []struct {
-		name string
-		args args
-		want results
+		name              string
+		args              args
+		populatedWorkload bool
 	}{
 		{
 			name: "sunny",
@@ -393,23 +388,14 @@ func Test_generateManifestWork(t *testing.T) {
 				namespace: "cluster1",
 				workflow:  workflow,
 			},
-			want: results{
-				workLabel: map[string]string{LabelKeyEnableOCMStatusSync: "true"},
-				workAnno: map[string]string{
-					AnnotationKeyHubWorkflowNamespace: "argo",
-					AnnotationKeyHubWorkflowName:      "workflow1",
-				},
-			},
+			populatedWorkload: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := generateManifestWork(tt.args.name, tt.args.namespace, tt.args.workflow)
-			if !reflect.DeepEqual(got.Annotations, tt.want.workAnno) {
-				t.Errorf("generateManifestWork() = %v, want %v", got.Annotations, tt.want.workAnno)
-			}
-			if !reflect.DeepEqual(got.Labels, tt.want.workLabel) {
-				t.Errorf("generateManifestWork() = %v, want %v", got.Labels, tt.want.workLabel)
+			if !reflect.DeepEqual(len(got.Spec.Workload.Manifests) > 0, tt.populatedWorkload) {
+				t.Errorf("generateManifestWork() populatedWorkload = %v, want %v", got.Spec.Workload.Manifests, tt.populatedWorkload)
 			}
 		})
 	}

@@ -43,12 +43,8 @@ const (
 	AnnotationKeyHubWorkflowNamespace = "workflows.argoproj.io/ocm-hub-workflow-namespace"
 	// ManifestWork annotation that shows the name of the hub Workflow.
 	AnnotationKeyHubWorkflowName = "workflows.argoproj.io/ocm-hub-workflow-name"
-	// Workflow annotation that shows the first 5 characters of the dormant hub cluster Workflow
-	AnnotationKeyHubWorkflowUID = "workflows.argoproj.io/ocm-hub-workflow-uid"
 	// Workflow label that enables the controller to wrap the Workflow in ManifestWork payload.
 	LabelKeyEnableOCMMulticluster = "workflows.argoproj.io/enable-ocm-multicluster"
-	// ManifestWork label that enables the controller to sync the status of the Workflow from the managed cluster to the hub cluster.
-	LabelKeyEnableOCMStatusSync = "workflows.argoproj.io/enable-ocm-status-sync"
 	// FinalizerCleanupManifestWork is added to the Workflow so the associated ManifestWork gets cleaned up after a Workflow deletion.
 	FinalizerCleanupManifestWork = "workflows.argoproj.io/cleanup-ocm-manifestwork"
 )

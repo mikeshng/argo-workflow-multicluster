@@ -21,9 +21,10 @@ import (
 
 	argov1alpha1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	workflowcontroller "open-cluster-management.io/argo-workflow-multicluster/controllers/workflow"
 )
 
-func Test_containsValidOCMAnnotation(t *testing.T) {
+func Test_containsValidOCMAnnotations(t *testing.T) {
 	type args struct {
 		workflow argov1alpha1.Workflow
 	}
@@ -33,22 +34,27 @@ func Test_containsValidOCMAnnotation(t *testing.T) {
 		want bool
 	}{
 		{
-			name: "valid OCM annotation",
+			name: "valid OCM annotations",
 			args: args{
 				argov1alpha1.Workflow{
 					ObjectMeta: v1.ObjectMeta{
-						Annotations: map[string]string{AnnotationKeyHubWorkflowUID: "abcde"},
+						Annotations: map[string]string{
+							workflowcontroller.AnnotationKeyHubWorkflowName:      "workflow1",
+							workflowcontroller.AnnotationKeyHubWorkflowNamespace: "argo",
+						},
 					},
 				},
 			},
 			want: true,
 		},
 		{
-			name: "invalid OCM annotation",
+			name: "invalid OCM annotations",
 			args: args{
 				argov1alpha1.Workflow{
 					ObjectMeta: v1.ObjectMeta{
-						Annotations: map[string]string{AnnotationKeyHubWorkflowUID + "a": "abcde"},
+						Annotations: map[string]string{
+							workflowcontroller.AnnotationKeyHubWorkflowName: "workflow1",
+						},
 					},
 				},
 			},
@@ -59,7 +65,10 @@ func Test_containsValidOCMAnnotation(t *testing.T) {
 			args: args{
 				argov1alpha1.Workflow{
 					ObjectMeta: v1.ObjectMeta{
-						Annotations: map[string]string{AnnotationKeyHubWorkflowUID: ""},
+						Annotations: map[string]string{
+							workflowcontroller.AnnotationKeyHubWorkflowName:      "",
+							workflowcontroller.AnnotationKeyHubWorkflowNamespace: "",
+						},
 					},
 				},
 			},
@@ -75,14 +84,14 @@ func Test_containsValidOCMAnnotation(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := containsValidOCMAnnotation(tt.args.workflow); got != tt.want {
-				t.Errorf("containsValidOCMAnnotation() = %v, want %v", got, tt.want)
+			if got := containsValidOCMAnnotations(tt.args.workflow); got != tt.want {
+				t.Errorf("containsValidOCMAnnotations() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_generateHubWorkflowStatusSyncName(t *testing.T) {
+func Test_generateHubWorkflowStatusResultName(t *testing.T) {
 	type args struct {
 		workflow argov1alpha1.Workflow
 	}
@@ -96,8 +105,8 @@ func Test_generateHubWorkflowStatusSyncName(t *testing.T) {
 			args: args{
 				argov1alpha1.Workflow{
 					ObjectMeta: v1.ObjectMeta{
-						Name:        "workflow1",
-						Annotations: map[string]string{AnnotationKeyHubWorkflowUID: "abcde"},
+						Name: "workflow1",
+						UID:  "abcde",
 					},
 				},
 			},
@@ -106,8 +115,8 @@ func Test_generateHubWorkflowStatusSyncName(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := generateHubWorkflowStatusSyncName(tt.args.workflow); got != tt.want {
-				t.Errorf("generateHubWorkflowStatusSyncName() = %v, want %v", got, tt.want)
+			if got := generateHubWorkflowStatusResultName(tt.args.workflow); got != tt.want {
+				t.Errorf("generateHubWorkflowStatusResultName() = %v, want %v", got, tt.want)
 			}
 		})
 	}

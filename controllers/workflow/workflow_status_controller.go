@@ -45,7 +45,12 @@ func (re *WorkflowStatusReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Complete(re)
 }
 
-// Reconcile populates the Workflow status based on the associated ManifestWork's status feedback
+// Reconcile populates the Workflow status based on the associated WorkflowStatusResult
+// The status sync flow:
+// Workflow (dormant) on hub cluster is created and it will be propagated to managed cluster(s)
+// => Workflow on managed cluster (contains annotations that reference the hub cluster dormant Workflow)
+// => The managed cluster status sync agent will create/update a WorkflowStatusResult on the hub cluster (contains annotations that reference the hub cluster dormant Workflow)
+// => using the references from WorkflowStatusResult this reconciler finds the dormant Workflow and populate the status.
 func (r *WorkflowStatusReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.Info("reconciling WorkflowStatusResult for status update..")
