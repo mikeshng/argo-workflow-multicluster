@@ -98,9 +98,18 @@ func prepareWorkflowForWorkPayload(workflow argov1alpha1.Workflow) argov1alpha1.
 		Kind:       argov1alpha1.WorkflowSchemaGroupVersionKind.Kind,
 	}
 
+	if workflow.Labels == nil {
+		workflow.Labels = make(map[string]string)
+	}
+
+	if workflow.Annotations == nil {
+		workflow.Annotations = make(map[string]string)
+	}
+
 	// TODO better handling of the managed cluster Workflow labels and annotations
 	workflow.Labels[LabelKeyEnableOCMMulticluster] = "false"
-	workflow.Annotations[AnnotationKeyHubWorkflowUID] = string(workflow.UID)[0:5]
+	workflow.Annotations[AnnotationKeyHubWorkflowNamespace] = workflow.Namespace
+	workflow.Annotations[AnnotationKeyHubWorkflowName] = workflow.Name
 
 	workflow.ObjectMeta = metav1.ObjectMeta{
 		Name:        workflow.Name,
@@ -123,9 +132,6 @@ func generateManifestWork(name, namespace string, workflow argov1alpha1.Workflow
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    map[string]string{LabelKeyEnableOCMStatusSync: strconv.FormatBool(true)},
-			Annotations: map[string]string{AnnotationKeyHubWorkflowNamespace: workflow.Namespace,
-				AnnotationKeyHubWorkflowName: workflow.Name},
 		},
 		Spec: workv1.ManifestWorkSpec{
 			Workload: workv1.ManifestsTemplate{

@@ -23,6 +23,7 @@ spec:
         args:
         - --leader-elect
         image: quay.io/open-cluster-management/argo-workflow-multicluster:latest
+        imagePullPolicy: IfNotPresent
         name: argo-workflow-multicluster
         securityContext:
           allowPrivilegeEscalation: false
